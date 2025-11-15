@@ -1,8 +1,8 @@
 import './style.css'
 
-import Scene from './components/scene.js'
+import SceneMain from './components/scene.js'
 
 (() => {
-  new Scene()
+  new SceneMain()
 })()
 

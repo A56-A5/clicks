@@ -1,8 +1,9 @@
-import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
-import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js'
-import { DRACOLoader } from 'three/examples/jsm/loaders/DRACOLoader.js'
-import { FontLoader } from 'three/examples/jsm/loaders/FontLoader.js'
-import { TextureLoader } from 'three'
+import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader.js"
+import { OBJLoader } from "three/examples/jsm/loaders/OBJLoader.js"
+import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader.js"
+import { FontLoader } from "three/examples/jsm/loaders/FontLoader.js"
+import { TextureLoader } from "three"
+import { STLLoader } from "three/examples/jsm/loaders/STLLoader.js"
 
 class LoaderManager {
   #assets = {}
@@ -11,6 +12,7 @@ class LoaderManager {
   #OBJLoader = new OBJLoader()
   #DRACOLoader = new DRACOLoader()
   #FontLoader = new FontLoader()
+  #STLLoader = new STLLoader()
 
   constructor() {
     this.#assets = {}
@@ -20,43 +22,21 @@ class LoaderManager {
     return this.#assets
   }
 
-  set assets(value) {
-    this.#assets = value
-  }
-
-  get(name) {
-    return this.#assets[name]
-  }
-
   load = (data) =>
     new Promise((resolve) => {
       const promises = []
+
       for (let i = 0; i < data.length; i++) {
-        const { name, gltf, texture, img, font, obj } = data[i]
+        const { name, gltf, texture, img, font, obj, stl } = data[i]
 
-        if (!this.#assets[name]) {
-          this.#assets[name] = {}
-        }
+        if (!this.#assets[name]) this.#assets[name] = {}
 
-        if (gltf) {
-          promises.push(this.loadGLTF(gltf, name))
-        }
-
-        if (texture) {
-          promises.push(this.loadTexture(texture, name))
-        }
-
-        if (img) {
-          promises.push(this.loadImage(img, name))
-        }
-
-        if (font) {
-          promises.push(this.loadFont(font, name))
-        }
-
-        if (obj) {
-          promises.push(this.loadObj(obj, name))
-        }
+        if (gltf) promises.push(this.loadGLTF(gltf, name))
+        if (texture) promises.push(this.loadTexture(texture, name))
+        if (img) promises.push(this.loadImage(img, name))
+        if (font) promises.push(this.loadFont(font, name))
+        if (obj) promises.push(this.loadObj(obj, name))
+        if (stl) promises.push(this.loadSTL(stl, name))  // <-- FIXED
       }
 
       Promise.all(promises).then(() => resolve())
@@ -64,27 +44,19 @@ class LoaderManager {
 
   loadGLTF(url, name) {
     return new Promise((resolve) => {
-      this.#DRACOLoader.setDecoderPath('https://www.gstatic.com/draco/v1/decoders/')
+      this.#DRACOLoader.setDecoderPath(
+        "https://www.gstatic.com/draco/v1/decoders/"
+      )
       this.#GLTFLoader.setDRACOLoader(this.#DRACOLoader)
 
-      this.#GLTFLoader.load(
-        url,
-        (result) => {
-          this.#assets[name].gltf = result
-          resolve(result)
-        },
-        undefined,
-        (e) => {
-          console.log(e)
-        }
-      )
+      this.#GLTFLoader.load(url, (result) => {
+        this.#assets[name].gltf = result
+        resolve(result)
+      })
     })
   }
 
   loadTexture(url, name) {
-    if (!this.#assets[name]) {
-      this.#assets[name] = {}
-    }
     return new Promise((resolve) => {
       this.#textureLoader.load(url, (result) => {
         this.#assets[name].texture = result
@@ -96,47 +68,61 @@ class LoaderManager {
   loadImage(url, name) {
     return new Promise((resolve) => {
       const image = new Image()
-
       image.onload = () => {
         this.#assets[name].img = image
         resolve(image)
       }
-
       image.src = url
     })
   }
 
   loadFont(url, name) {
     return new Promise((resolve) => {
-      this.#FontLoader.load(
-        url,
-        (font) => {
-          this.#assets[name].font = font
-          resolve(font)
-        },
-        () => {},
-        (err) => {
-          console.log('An error happened', err)
-        }
-      )
+      this.#FontLoader.load(url, (font) => {
+        this.#assets[name].font = font
+        resolve(font)
+      })
     })
   }
 
   loadObj(url, name) {
     return new Promise((resolve) => {
-      this.#OBJLoader.load(
+      this.#OBJLoader.load(url, (object) => {
+        this.#assets[name].obj = object
+        resolve(object)
+      })
+    })
+  }
+
+  loadSTL(url, name) {
+    return new Promise((resolve) => {
+      this.#STLLoader.load(
         url,
-        (object) => {
-          this.#assets[name].obj = object
-          resolve(object)
+        (geometry) => {
+          this.#assets[name].geometry = geometry
+          resolve(geometry)
         },
-        () => {},
-        (err) => {
-          console.log('An error happened', err)
-        }
+        undefined,
+        (err) => console.error("STL load error:", err)
       )
     })
   }
-}
 
+  // ---------------- Audio Loader ----------------
+  loadAudio(url, name, audioCtx = new (window.AudioContext || window.webkitAudioContext)()) {
+    return new Promise((resolve, reject) => {
+      fetch(url)
+        .then(res => res.arrayBuffer())
+        .then(arrayBuffer => audioCtx.decodeAudioData(arrayBuffer))
+        .then(audioBuffer => {
+          if (!this.#assets[name]) this.#assets[name] = {};
+          this.#assets[name].audio = audioBuffer;
+          this.#assets[name].audioCtx = audioCtx;
+          resolve(audioBuffer);
+        })
+        .catch(err => reject(err));
+    });
+  }
+
+}
 export default new LoaderManager()
