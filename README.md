@@ -23,11 +23,12 @@ Try the live demo here: [Demo Link](https://clicks-type.vercel.app)
 
 ## Screenshots
 
-![Screenshot 1](demo_images/demo1.png)  
 <div style="display: flex; gap: 10px;">
-  <img src="demo_images/demo2.png" width="50%">
-  <img src="demo_images/demo3.png" width="50%">
+  <img src="demo_images/demo3.png" width="49%">
+  <img src="demo_images/demo2.png" width="49%">
 </div>
+
+![Screenshot 1](demo_images/demo1.png)  
 
 ---
 
