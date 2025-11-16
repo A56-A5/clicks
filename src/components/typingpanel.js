@@ -292,7 +292,7 @@ export default class TypingPanel {
       this.wordIndex++;
       this.charIndex = 0;
       this.typedString = "";
-      this.wordsQueue.push(this.dictionary[Math.floor(Math.random() * this.dictionary.length)]);
+      this.wordsQueue.push(this.dictionary[Math.floor(Math.random() * this.dictionary.length)] + " ");
       if (this.wordsQueue.length > this.maxWords) {
         this.wordsQueue.shift();
         if (this.wordIndex > 0) this.wordIndex--;
