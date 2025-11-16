@@ -211,7 +211,7 @@ export default class TypingPanel {
 
     // initialize words queue
     for (let i = 0; i < this.maxWords; i++) {
-      this.wordsQueue.push(this.dictionary[Math.floor(Math.random() * this.dictionary.length)]);
+      this.wordsQueue.push(this.dictionary[Math.floor(Math.random() * this.dictionary.length)] + " ");
     }
 
     this.createMesh(options.position || { x: 0, y: 25, z: 5 });
