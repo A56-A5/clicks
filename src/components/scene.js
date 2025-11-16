@@ -6,6 +6,8 @@ import {
   DirectionalLight,
   AmbientLight,
   HemisphereLight,
+  Raycaster,
+  Vector2,
   Clock
 } from "three";
 
@@ -22,10 +24,14 @@ import BackgroundSettings from "./backgroundsetting.js";
 export default class SceneMain {
   #canvas; #renderer; #scene; #camera; #controls; #stats; #width; #height; raf;
 
+  #raycaster = new Raycaster();
+  #mouse = new Vector2();
+
   constructor() {
     this.#canvas = document.querySelector(".scene");
     this.clock = new Clock();
     this.#width = window.innerWidth;
+
     this.#height = window.innerHeight;
     this.init();
   }
@@ -144,6 +150,35 @@ export default class SceneMain {
     this.#renderer.setSize(this.#width, this.#height);
   }
 
+  checkKeyHover() {
+    this.#raycaster.setFromCamera(this.#mouse, this.#camera);
+
+    const keyMeshes = [];
+    Object.values(this.keyboard.keyStates).forEach(arr => {
+      arr.forEach(s => keyMeshes.push(s.mesh));
+    });
+
+    const intersects = this.#raycaster.intersectObjects(keyMeshes);
+
+    keyMeshes.forEach(mesh => {
+      if (!intersects.find(i => i.object === mesh)) mesh.userData.hovered = false;
+    });
+
+    intersects.forEach(i => {
+      const mesh = i.object;
+      if (!mesh.userData.hovered) {
+        mesh.userData.hovered = true;
+      }
+    });
+  
+    Object.values(this.keyboard.keyStates).forEach(arr => {
+      arr.forEach(s => {
+        s.targetZ = s.mesh.userData.hovered ? -1.5 : (s.targetZ === -1.5 ? 0 : s.targetZ);
+      });
+    });
+  }
+
+
   events() {
     window.addEventListener("resize", this.handleResize, { passive: true });
 
@@ -158,6 +193,14 @@ export default class SceneMain {
       e.preventDefault();
       this.keyboard.releaseKey(e.key.toLowerCase());
     });
+
+    window.addEventListener("mousemove", (e) => {
+      // Convert mouse position to normalized device coordinates (-1 to +1)
+      this.#mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+      this.#mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+      this.checkKeyHover();
+    });
+
 
     this.draw();
   }

@@ -1,5 +1,5 @@
 // SoundPackManager.js
-import loaderManager from "./LoaderManager.js";
+import loaderManager from "./loaderManager.js";
 
 export default class SoundPackManager {
   constructor(basePath="/key_sounds/") {
