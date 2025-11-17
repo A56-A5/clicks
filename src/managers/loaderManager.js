@@ -36,7 +36,7 @@ class LoaderManager {
         if (img) promises.push(this.loadImage(img, name))
         if (font) promises.push(this.loadFont(font, name))
         if (obj) promises.push(this.loadObj(obj, name))
-        if (stl) promises.push(this.loadSTL(stl, name))  // <-- FIXED
+        if (stl) promises.push(this.loadSTL(stl, name)) 
       }
 
       Promise.all(promises).then(() => resolve())
@@ -108,7 +108,6 @@ class LoaderManager {
     })
   }
 
-  // ---------------- Audio Loader ----------------
   loadAudio(url, name, audioCtx = new (window.AudioContext || window.webkitAudioContext)()) {
     return new Promise((resolve, reject) => {
       fetch(url)

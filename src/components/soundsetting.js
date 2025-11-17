@@ -5,12 +5,18 @@ export default class SoundSettings {
     this.audioBuffer = null;
     this.audioContext = new (window.AudioContext || window.webkitAudioContext)();
 
+    this.gainNode = this.audioContext.createGain();
+    this.gainNode.connect(this.audioContext.destination);
+
+    this.volume = parseFloat(localStorage.getItem("soundVolume")) || 0.33;
+    this.gainNode.gain.value = this.volume;
+
     this.keyMap = {
       "`": "41", "1": "2","2":"3","3":"4","4":"5","5":"6","6":"7","7":"8","8":"9","9":"10","0":"11","-":"12","=":"13",
       "q":"16","w":"17","e":"18","r":"19","t":"20","y":"21","u":"22","i":"23","o":"24","p":"25","[":"26","]":"27","\\":"28",
       "a":"30","s":"31","d":"32","f":"33","g":"34","h":"35","j":"36","k":"37","l":"38",";":"39","'":"40",
       "z":"44","x":"45","c":"46","v":"47","b":"48","n":"49","m":"50",",":"51",".":"52","/":"53",
-      " ":"57","Enter":"28","Shift":"42","Tab":"15","Control":"29","Alt":"56","Backspace":"14","CapsLock":"58"
+      " ":"57","Enter":"3612","Shift":"42","Tab":"15","Control":"29","Alt":"56","Backspace":"14","CapsLock":"58"
     };
 
     this.initUI();
@@ -19,6 +25,8 @@ export default class SoundSettings {
 
   initUI() {
     const container = document.createElement("div");
+    container.style.display = "flex";
+    container.style.flexDirection = "column";
     container.style.position = "absolute";
     container.style.top = "10px";
     container.style.right = "10px";
@@ -35,9 +43,32 @@ export default class SoundSettings {
 
     this.select = document.createElement("select");
     this.select.style.background = "black";
+    this.select.style.marginTop = "11px";
+
     this.select.style.color = "white";
     this.select.addEventListener("change", () => this.selectPack(this.select.value));
 
+    const volLabel = document.createElement("div");
+    volLabel.textContent = "Volume";
+    volLabel.style.marginTop = "6px";
+    container.appendChild(volLabel);
+
+
+    this.volSlider = document.createElement("input");
+    this.volSlider.type = "range";
+    this.volSlider.min = "0";
+    this.volSlider.max = "1";
+    this.volSlider.step = "0.01";
+    this.volSlider.value = this.volume;
+    this.volSlider.style.width = "120px";
+
+    this.volSlider.addEventListener("input", () => {
+      this.volume = parseFloat(this.volSlider.value);
+      this.gainNode.gain.value = this.volume;
+      localStorage.setItem("soundVolume", this.volume); 
+    });
+    
+    container.appendChild(this.volSlider);
     container.appendChild(this.select);
     document.body.appendChild(container);
   }
@@ -117,7 +148,7 @@ export default class SoundSettings {
     try {
       const source = this.audioContext.createBufferSource();
       source.buffer = this.audioBuffer;
-      source.connect(this.audioContext.destination);
+      source.connect(this.gainNode);
       source.start(0, startSec, durationSec);
     } catch (e) {
       console.error("Error playing key:", key, e);

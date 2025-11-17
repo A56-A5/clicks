@@ -75,7 +75,7 @@ export default class SceneMain {
     this.#scene.background = new Color(0x222222);
   }
 
-  get scene() { return this.#scene; } // BackgroundSettings uses this
+  get scene() { return this.#scene; } 
 
   setCamera() {
     this.#camera = new PerspectiveCamera(

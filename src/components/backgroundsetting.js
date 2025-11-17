@@ -16,7 +16,7 @@ export default class BackgroundSettings {
   initUI() {
     const container = document.createElement("div");
     container.style.position = "absolute";
-    container.style.top = "90px";
+    container.style.top = "120px";
     container.style.right = "10px";
     container.style.background = "rgba(0,0,0,0.5)";
     container.style.color = "white";
@@ -26,6 +26,7 @@ export default class BackgroundSettings {
 
     const label = document.createElement("div");
     label.textContent = "Background Color";
+    label.style.fontWeight = "bold";
     label.style.marginBottom = "4px";
 
     this.colorPicker = document.createElement("input");
