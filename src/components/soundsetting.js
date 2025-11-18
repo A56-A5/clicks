@@ -74,8 +74,12 @@ export default class SoundSettings {
   }
 
   async loadSoundPacks() {
+    if (this._loaded) return;
+    this._loaded = true;
     // List all sound packs
     const packs = [
+      "banana-split-lubed",
+      "banana-split-stock",
       "cherrymx-black-abs",
       "cherrymx-black-pbt",
       "cherrymx-blue-abs",
@@ -115,43 +119,69 @@ export default class SoundSettings {
   }
 
   async selectPack(packId) {
-    const pack = this.soundPacks.find(p => p.id === packId);
-    if (!pack) return;
+      const pack = this.soundPacks.find(p => p.id === packId);
+      if (!pack) return;
 
-    this.currentPack = pack;
-    localStorage.setItem("soundPack", packId); //store local choice
+      this.currentPack = pack;
+      localStorage.setItem("soundPack", packId);
 
-    try {
-      const audioResp = await fetch(`/key_sounds/${packId}/${pack.config.sound}`);
-      const arrayBuffer = await audioResp.arrayBuffer();
-      this.audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
-    } catch (e) {
-      console.error("Failed to load audio file for pack:", packId, e);
-    }
+      if (pack.config.key_define_type === "single") {
+          try {
+              const audioResp = await fetch(`/key_sounds/${packId}/${pack.config.sound}`);
+              const arrayBuffer = await audioResp.arrayBuffer();
+              this.audioBuffer = await this.audioContext.decodeAudioData(arrayBuffer);
+              this.multiBuffers = null;   // disable multi mode
+          } catch (e) {
+              console.error("Failed to load single-file audio:", packId, e);
+          }
+      }
+    
+      else if (pack.config.key_define_type === "multi") {
+          this.multiBuffers = {}; // store decoded buffers per key
+          this.audioBuffer = null;
+
+          const entries = Object.entries(pack.config.defines);
+
+          for (const [keyId, fileName] of entries) {
+              try {
+                  const resp = await fetch(`/key_sounds/${packId}/${fileName}`);
+                  const data = await resp.arrayBuffer();
+                  const buffer = await this.audioContext.decodeAudioData(data);
+                  this.multiBuffers[keyId] = buffer;
+              } catch (e) {
+                  console.error(`Failed loading multi sound file: ${fileName}`, e);
+              }
+          }
+      }
   }
 
   playKey(key) {
-    if (!this.currentPack || !this.audioBuffer) return;
-
-    // Map key to config id and get start and length
-    const keyId = this.keyMap[key] || this.keyMap[key.toLowerCase()];
-    const def = this.currentPack.config.defines[keyId];
-    if (!def) {
-      console.warn("No key mapping for:", key);
-      return;
+    if (!this.currentPack) return;
+    const pack = this.currentPack;
+    const keyId = this.keyMap[key] || this.keyMap[key?.toLowerCase()];
+    if (!keyId) return;
+    
+    if (pack.config.key_define_type === "multi") {
+        const buffer = this.multiBuffers[keyId];
+        if (!buffer) return;
+        const src = this.audioContext.createBufferSource();
+        src.buffer = buffer;
+        src.connect(this.gainNode);
+        src.start();
+        return;
     }
-
-    const [start, length] = def;
-    const startSec = start / 1000;
-    const durationSec = length / 1000;
-
-    try {
-      const source = this.audioContext.createBufferSource();
-      source.buffer = this.audioBuffer;
-      source.connect(this.gainNode);
-      source.start(0, startSec, durationSec);
-    } catch (e) {
-      console.error("Error playing key:", key, e);
-    }   
+    
+    if (pack.config.key_define_type === "single") {
+        if (!this.audioBuffer) return;
+        const def = pack.config.defines[keyId];
+        if (!def) return;
+        const [start, length] = def;
+        const startSec = start / 1000;
+        const durSec = length / 1000;
+        const source = this.audioContext.createBufferSource();
+        source.buffer = this.audioBuffer;
+        source.connect(this.gainNode);
+        source.start(0, startSec, durSec);
+    }
   }
 }

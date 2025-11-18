@@ -209,12 +209,41 @@ export default class TypingPanel {
     this.wordIndex = 0;
     this.charIndex = 0;
 
+    //wpm
+    this.timeLimit = options.timeLimit || 30;   
+    this.timeLeft = this.timeLimit;
+
+    this.isRunning = false;
+    this.restartCooldown = false;
+
+    this.correctChars = 0;
+    this.totalChars = 0;
+    this.startTimestamp = null;
+
     // initialize words queue
     for (let i = 0; i < this.maxWords; i++) {
       this.wordsQueue.push(this.dictionary[Math.floor(Math.random() * this.dictionary.length)] + " ");
     }
 
+    this.position = options.position || { x: 0, y: 25, z: 5 };
     this.createMesh(options.position || { x: 0, y: 25, z: 5 });
+
+    //create timer display
+    this.timerCanvas = document.createElement("canvas");
+    this.timerCanvas.width = 512;
+    this.timerCanvas.height = 64;
+    this.timerCtx = this.timerCanvas.getContext("2d");
+
+    this.timerTex = new CanvasTexture(this.timerCanvas);
+    this.timerMat = new MeshBasicMaterial({ map: this.timerTex, transparent: true });
+    this.timerGeom = new PlaneGeometry(512 / 4, 64 / 4);
+    this.timerMesh = new Mesh(this.timerGeom, this.timerMat);
+
+    this.timerMesh.position.set(this.position.x, this.position.y + 20, this.position.z);
+
+    this.scene.add(this.timerMesh);
+    this.updateTimerDisplay();
+
   }
 
   createMesh(position) {
@@ -244,6 +273,40 @@ export default class TypingPanel {
     this.updateMesh();
   }
 
+  startTest() {
+
+    this.isRunning = true;
+    this.timeLeft = this.timeLimit;
+    this.startTimestamp = performance.now();
+
+
+    const tick = () => {
+      if (!this.isRunning && !this.restartCooldown) return;
+
+      const now = performance.now();
+      this.timeLeft = this.timeLimit - (now - this.startTimestamp) / 1000;
+
+      if (this.timeLeft <= 0) {
+          this.isRunning = false;
+          this.timeLeft = 0;
+
+          this.restartCooldown = true;
+          setTimeout(() => {
+              this.restartCooldown = false;
+              this.resetAll();
+          }, 3000);
+      }
+
+
+      if (this.isRunning) this.updateTimerDisplay();
+
+      requestAnimationFrame(tick);
+    };
+
+    requestAnimationFrame(tick);
+  }
+
+
   updateMesh() {
     const ctx = this.ctx;
     const canvas = this.canvas;
@@ -271,6 +334,10 @@ export default class TypingPanel {
   }
 
   handleKey(key) {
+    if (!this.isRunning && !this.restartCooldown) {
+        this.startTest();
+    }
+
     const currentWord = this.wordsQueue[this.wordIndex];
     if (!currentWord) return;
 
@@ -282,6 +349,10 @@ export default class TypingPanel {
     } else if (key.length === 1) {
       if (this.charIndex < currentWord.length) {
         this.typedString += key;
+        if (key === currentWord[this.charIndex]) {
+            this.correctChars++;
+        }
+        this.totalChars++;
         this.charIndex++;
       }
       if (this.charIndex === currentWord.length && key === " ") this.charIndex++;
@@ -301,4 +372,41 @@ export default class TypingPanel {
 
     this.updateMesh();
   }
+
+  updateTimerDisplay() {
+    const ctx = this.timerCtx;
+    const canvas = this.timerCanvas;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    ctx.fillStyle = "white";
+    ctx.font = "32px Arial";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+
+    const elapsed = Math.max(0, (this.timeLimit - this.timeLeft));
+    const wpm = elapsed > 0 ? Math.round((this.correctChars / 5) / (elapsed / 60)) : 0;
+
+    ctx.fillText(
+      `Time: ${this.timeLeft.toFixed(1)}  —  WPM: ${wpm}`,
+      canvas.width / 2,
+      canvas.height / 2
+    );
+
+    this.timerTex.needsUpdate = true;
+  }
+
+  resetAll() {
+      this.correctChars = 0;
+      this.totalChars = 0;
+      this.wordIndex = 0;
+      this.charIndex = 0;
+      this.typedString = "";
+
+      this.timeLeft = this.timeLimit;
+      this.startTimestamp = performance.now();
+
+      this.updateMesh();
+      this.updateTimerDisplay();
+    }
+
 }

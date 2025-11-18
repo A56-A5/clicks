@@ -20,6 +20,8 @@ import TypingPanel from "./typingpanel.js";
 import SoundSettings from "./soundsetting.js";
 import KeyboardColorSettings from "./keyboardcolor.js";
 import BackgroundSettings from "./backgroundsetting.js";
+import TimerSettings from "./timersetting.js";
+
 
 export default class SceneMain {
   #canvas; #renderer; #scene; #camera; #controls; #stats; #width; #height; raf;
@@ -65,6 +67,10 @@ export default class SceneMain {
     this.soundSettings = new SoundSettings(this); 
     this.keyboardColorSettings = new KeyboardColorSettings(this);
     this.backgroundSettings = new BackgroundSettings(this);
+    this.timerSettings = new TimerSettings(this);
+
+    try{ await this.soundSettings.loadSoundPacks();}
+    catch(e){console.warn("Some Sound packs failed to load:",e);}
 
     this.handleResize();
     this.events();
