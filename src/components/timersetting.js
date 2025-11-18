@@ -26,6 +26,8 @@ export default class TimerSettings {
 
     const select = document.createElement("select");
     select.style.width = "100%";
+    select.style.color = "white";
+    select.style.background = "black";
     select.style.marginBottom = "6px";
 
     select.innerHTML = `
@@ -41,6 +43,7 @@ export default class TimerSettings {
     toggleBtn.style.width = "100%";
     toggleBtn.style.padding = "4px";
     toggleBtn.style.background = "black";
+    toggleBtn.style.color = "white";
     toggleBtn.style.cursor = "pointer";
     toggleBtn.style.marginTop = "6px";
     container.appendChild(toggleBtn);
